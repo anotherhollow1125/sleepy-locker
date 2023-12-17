@@ -17,6 +17,13 @@ tauri = { version = "1.5", features = ["shell-open"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
+[dependencies.windows]
+version = "0.52.0"
+features = ["Win32_System_Power"]
+
+[dev-dependencies]
+dialoguer = "0.11.0"
+
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
 # DO NOT REMOVE!!
