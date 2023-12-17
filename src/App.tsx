@@ -1,51 +1,52 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/tauri";
+import { useState, useEffect } from "react";
+import Grid from "@mui/material/Grid";
 import "./App.css";
+import { getVersion } from "@tauri-apps/api/app";
+import SleepPreventSwitch from "@/components/SleepPreventSwitch";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  const [version, setVersion] = useState("");
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  useEffect(() => {
+    getVersion().then((v) => {
+      setVersion(v);
+    });
+  }, []);
 
   return (
     <div className="container">
-      <h1>Welcome to Tauri!</h1>
+      <Grid container spacing={2} sx={{ px: 2, textAlign: "left" }}>
+        <Grid item xs={12}>
+          <h2>Sleepy Locker</h2>
+        </Grid>
+      </Grid>
 
-      <div className="row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
+      <Grid container spacing={2} sx={{ px: 2, textAlign: "left" }}>
+        <Grid item xs={8}>
+          <h4>Toggle Sleep Prevent</h4>
+        </Grid>
+        <Grid
+          item
+          xs={4}
+          sx={{
+            display: "flex",
+            flexDirection: "row-reverse",
+            alignItems: "center",
+          }}
+        >
+          <SleepPreventSwitch />
+        </Grid>
+      </Grid>
 
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
+      <Grid
+        container
+        spacing={2}
+        sx={{ px: 2, mt: 2, textAlign: "right", alignItems: "center" }}
       >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-
-      <p>{greetMsg}</p>
+        <Grid item xs={12} sx={{ textAlign: "left" }}>
+          <h4>{"Ver. " + version}</h4>
+        </Grid>
+      </Grid>
     </div>
   );
 }
