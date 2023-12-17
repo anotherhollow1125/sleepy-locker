@@ -2505,7 +2505,9 @@ dependencies = [
 name = "sleepy-locker"
 version = "0.0.0"
 dependencies = [
+ "anyhow",
  "dialoguer",
+ "once_cell",
  "serde",
  "serde_json",
  "tauri",

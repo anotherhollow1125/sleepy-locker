@@ -1,7 +1,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use sleepy_locker::lock_hooks::{set_hook, unhook};
 use sleepy_locker::sleep_prevent::{allow_sleep, prevent_sleep};
 use std::sync::Mutex;
+use tauri::WindowEvent;
 
 #[tauri::command]
 fn set_sleep_prevent_enabled(
@@ -41,6 +43,14 @@ fn main() {
             get_sleep_prevent_enabled
         ])
         .manage(prevent_sleep_enabled)
+        .setup(|app| {
+            set_hook(app)?;
+            Ok(())
+        })
+        .on_window_event(|event| match event.event() {
+            WindowEvent::CloseRequested { .. } => unhook().unwrap(),
+            _ => {}
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
