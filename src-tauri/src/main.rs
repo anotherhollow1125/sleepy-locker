@@ -4,6 +4,9 @@ use sleepy_locker::{init_control_thread, Event, LockState};
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 
+mod system_tray;
+use system_tray::{create_systemtray, on_system_tray_event};
+
 #[tauri::command]
 fn set_sleep_prevent_enabled(
     tx: tauri::State<'_, Sender<Event>>,
@@ -39,6 +42,8 @@ fn main() {
             set_sleep_prevent_enabled,
             get_sleep_prevent_enabled
         ])
+        .system_tray(create_systemtray())
+        .on_system_tray_event(on_system_tray_event)
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

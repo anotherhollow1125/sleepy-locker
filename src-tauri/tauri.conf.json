@@ -20,7 +20,7 @@
     "bundle": {
       "active": true,
       "targets": "all",
-      "identifier": "com.tauri.dev",
+      "identifier": "sleepy-locker.namnium.work",
       "icon": [
         "icons/32x32.png",
         "icons/128x128.png",
@@ -35,11 +35,15 @@
     "windows": [
       {
         "fullscreen": false,
-        "resizable": true,
+        "resizable": false,
         "title": "sleepy-locker",
         "width": 330,
         "height": 240
       }
-    ]
+    ],
+    "systemTray": {
+      "iconPath": "icons/icon.png",
+      "iconAsTemplate": true
+    }
   }
 }
