@@ -1,56 +1,44 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use sleepy_locker::lock_hooks::{set_hook, unhook};
-use sleepy_locker::sleep_prevent::{allow_sleep, prevent_sleep};
-use std::sync::Mutex;
-use tauri::WindowEvent;
+use sleepy_locker::{init_control_thread, Event, LockState};
+use std::sync::mpsc::Sender;
+use std::sync::{Arc, Mutex};
 
 #[tauri::command]
 fn set_sleep_prevent_enabled(
-    prevent_sleep_enabled: tauri::State<'_, Mutex<bool>>,
+    tx: tauri::State<'_, Sender<Event>>,
     enabled: bool,
-) -> Result<bool, String> {
-    let mut prevent_sleep_enabled = prevent_sleep_enabled
-        .lock()
-        .map_err(|e| format!("failed to lock prevent_sleep_enabled: {}", e))?;
-    *prevent_sleep_enabled = enabled;
+) -> Result<(), String> {
     if enabled {
-        prevent_sleep();
-        dbg!("Sleep prevention enabled");
+        tx.send(Event::Prevent)
+            .map_err(|e| format!("failed to send Event::Prevent: {}", e))?;
     } else {
-        allow_sleep();
-        dbg!("Sleep prevention disabled");
+        tx.send(Event::Allow)
+            .map_err(|e| format!("failed to send Event::Allow: {}", e))?;
     }
-    Ok(*prevent_sleep_enabled)
+    Ok(())
 }
 
 #[tauri::command]
 fn get_sleep_prevent_enabled(
-    prevent_sleep_enabled: tauri::State<'_, Mutex<bool>>,
+    lock_state: tauri::State<'_, Arc<Mutex<LockState>>>,
 ) -> Result<bool, String> {
-    let prevent_sleep_enabled = prevent_sleep_enabled
+    let lock_state = lock_state
         .lock()
         .map_err(|e| format!("failed to lock prevent_sleep_enabled: {}", e))?;
-    Ok(*prevent_sleep_enabled)
+    Ok(lock_state.is_enabled())
 }
 
 fn main() {
-    let prevent_sleep_enabled = Mutex::new(false);
+    let (tx, lock_state) = init_control_thread();
 
     tauri::Builder::default()
+        .manage(tx)
+        .manage(lock_state)
         .invoke_handler(tauri::generate_handler![
             set_sleep_prevent_enabled,
             get_sleep_prevent_enabled
         ])
-        .manage(prevent_sleep_enabled)
-        .setup(|app| {
-            set_hook(app)?;
-            Ok(())
-        })
-        .on_window_event(|event| match event.event() {
-            WindowEvent::CloseRequested { .. } => unhook().unwrap(),
-            _ => {}
-        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
