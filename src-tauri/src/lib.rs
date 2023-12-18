@@ -71,19 +71,19 @@ pub fn init_control_thread() -> (Sender<Event>, Arc<Mutex<LockState>>) {
             match event {
                 Event::Lock => {
                     state.lock();
-                    dbg!("lock event occurred");
+                    // dbg!("lock event occurred");
                 }
                 Event::Unlock => {
                     state.unlock();
-                    dbg!("unlock event occurred");
+                    // dbg!("unlock event occurred");
                 }
                 Event::Prevent => {
                     state.set_enabled(true);
-                    dbg!("prevent event occurred");
+                    // dbg!("prevent event occurred");
                 }
                 Event::Allow => {
                     state.set_enabled(false);
-                    dbg!("allow event occurred");
+                    // dbg!("allow event occurred");
                 }
             }
             execute_prevent_or_allow(&state);
