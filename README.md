@@ -1,3 +1,5 @@
+[![publish](https://github.com/anotherhollow1125/sleepy-locker/actions/workflows/build.yaml/badge.svg)](https://github.com/anotherhollow1125/sleepy-locker/actions/workflows/build.yaml)
+
 # Sleepy Locker 🔒💤
 
 ![Sleepy Locker Screen Shot](.github/sleepy_locker_screenshot.png)
@@ -11,7 +13,7 @@ Sleepy Lockerは画面が勝手にスリープしないようにするためのW
 
 リリースページ: https://github.com/anotherhollow1125/sleepy-locker/releases
 
-ダウンロード: https://github.com/anotherhollow1125/sleepy-locker/releases/download/v0.0.0/sleepy-locker_0.0.0_x64_ja-JP.msi
+ダウンロード: https://github.com/anotherhollow1125/sleepy-locker/releases/download/app-v0.0.1/sleepy-locker_0.0.1_x64_ja-JP.msi
 
 自分用に作ったのですごく簡素で配慮のないUIになっています、ｺﾞﾒﾝﾅｻｲ😣
 
