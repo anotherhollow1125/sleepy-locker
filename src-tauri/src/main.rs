@@ -3,6 +3,7 @@
 use sleepy_locker::{init_control_thread, Event, LockState};
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
+use tauri_plugin_autostart::MacosLauncher;
 
 mod system_tray;
 use system_tray::{create_systemtray, on_system_tray_event};
@@ -44,6 +45,10 @@ fn main() {
         ])
         .system_tray(create_systemtray())
         .on_system_tray_event(on_system_tray_event)
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            None,
+        ))
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
