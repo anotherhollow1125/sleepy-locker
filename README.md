@@ -15,6 +15,12 @@ Sleepy Lockerは画面が勝手にスリープしないようにするためのW
 
 ダウンロード: https://github.com/anotherhollow1125/sleepy-locker/releases/download/app-v0.0.2/sleepy-locker_0.0.2_x64_ja-JP.msi
 
+# 作った動機等
+
+作った動機やどうやって作ったかは下記メイキング記事を参照してほしいです✨
+
+[Tauri + windows-rsでスリープ防止アプリを作った話またはその制作手順を公開しTauri DIYを布教する的な何か - Qiita](https://qiita.com/namn1125/items/880b67467213fc706fee)
+
 自分用に作ったのですごく簡素で配慮のないUIになっています、ｺﾞﾒﾝﾅｻｲ😣
 
 もっと良い案や改善するべき点があればissueをいただけると幸いです🙏
