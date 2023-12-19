@@ -4,6 +4,7 @@ use std::sync::{
     mpsc::{channel, Sender},
     Arc, Mutex,
 };
+use std::thread::JoinHandle;
 
 pub mod lock_hooks;
 pub mod sleep_prevent;
@@ -13,6 +14,7 @@ pub enum Event {
     Unlock,
     Prevent,
     Allow,
+    Quit,
 }
 
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -58,14 +60,20 @@ impl LockState {
     }
 }
 
-pub fn init_control_thread() -> (Sender<Event>, Arc<Mutex<LockState>>) {
+pub fn init_event_thread() -> (
+    Sender<Event>,
+    Arc<Mutex<LockState>>,
+    impl FnOnce() -> (),
+    JoinHandle<()>,
+    JoinHandle<()>,
+) {
     let (tx, rx) = channel();
     let tx1 = tx.clone();
-    detect_lock_init(tx1).unwrap();
+    let (dw_handle, close_dummy_window) = detect_lock_init(tx1).unwrap();
     let state = Arc::new(Mutex::new(LockState::Unlock(Mode::Allow)));
     let st = state.clone();
 
-    std::thread::spawn(move || {
+    let event_handle = std::thread::spawn(move || {
         for event in rx {
             let mut state = st.lock().unwrap();
             match event {
@@ -81,10 +89,13 @@ pub fn init_control_thread() -> (Sender<Event>, Arc<Mutex<LockState>>) {
                 Event::Allow => {
                     state.set_enabled(false);
                 }
+                Event::Quit => {
+                    break;
+                }
             }
             execute_prevent_or_allow(&state);
         }
     });
 
-    (tx, state)
+    (tx, state, close_dummy_window, dw_handle, event_handle)
 }

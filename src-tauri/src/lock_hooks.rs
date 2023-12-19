@@ -1,33 +1,46 @@
 use crate::Event;
 use anyhow::{bail, Context, Result};
-use std::sync::{mpsc::Sender, OnceLock};
+use std::sync::{
+    mpsc::{channel, Sender},
+    OnceLock,
+};
+use std::thread::JoinHandle;
 use windows::core::s;
 use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
 use windows::Win32::System::LibraryLoader::GetModuleHandleA;
 use windows::Win32::System::RemoteDesktop::{
-    WTSRegisterSessionNotification, NOTIFY_FOR_THIS_SESSION,
+    WTSRegisterSessionNotification, WTSUnRegisterSessionNotification, NOTIFY_FOR_THIS_SESSION,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExA, DefWindowProcA, DispatchMessageA, GetMessageA, RegisterClassA, MSG,
-    WINDOW_EX_STYLE, WM_WTSSESSION_CHANGE, WNDCLASSA, WS_OVERLAPPEDWINDOW, WTS_SESSION_LOCK,
-    WTS_SESSION_UNLOCK,
+    CreateWindowExA, DefWindowProcA, DestroyWindow, DispatchMessageA, GetMessageA, PostQuitMessage,
+    RegisterClassA, SendMessageA, MSG, WINDOW_EX_STYLE, WM_CLOSE, WM_DESTROY, WM_WTSSESSION_CHANGE,
+    WNDCLASSA, WS_OVERLAPPEDWINDOW, WTS_SESSION_LOCK, WTS_SESSION_UNLOCK,
 };
 
 static SNDR: OnceLock<Sender<Event>> = OnceLock::new();
 
-pub(crate) fn detect_lock_init(tx: Sender<Event>) -> Result<()> {
+pub(crate) fn detect_lock_init(tx: Sender<Event>) -> Result<(JoinHandle<()>, impl FnOnce() -> ())> {
     let Ok(_) = SNDR.set(tx) else {
         bail!("detect_lock_init called more than once");
     };
 
-    std::thread::spawn(|| {
-        dummy_window_for_detect_lock().unwrap();
+    let (tx, rx) = channel();
+    let dw_handle = std::thread::spawn(move || {
+        dummy_window_for_detect_lock(tx).unwrap();
     });
 
-    Ok(())
+    let hwnd = rx
+        .recv()
+        .with_context(|| format!("@{}:{}", file!(), line!()))?;
+
+    let close_dummy_window = move || unsafe {
+        let _ = SendMessageA(hwnd, WM_CLOSE, WPARAM(0), LPARAM(0));
+    };
+
+    Ok((dw_handle, close_dummy_window))
 }
 
-fn dummy_window_for_detect_lock() -> Result<()> {
+fn dummy_window_for_detect_lock(hwnd_tx: Sender<HWND>) -> Result<()> {
     unsafe {
         let instance =
             GetModuleHandleA(None).with_context(|| format!("@{}:{}", file!(), line!()))?;
@@ -60,6 +73,10 @@ fn dummy_window_for_detect_lock() -> Result<()> {
             instance,
             None,
         );
+
+        hwnd_tx
+            .send(hwnd)
+            .with_context(|| format!("@{}:{}", file!(), line!()))?;
 
         WTSRegisterSessionNotification(hwnd, NOTIFY_FOR_THIS_SESSION)
             .with_context(|| format!("@{}:{}", file!(), line!()))?;
@@ -94,6 +111,15 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
                     _ => {}
                 }
 
+                LRESULT(0)
+            }
+            WM_CLOSE => {
+                WTSUnRegisterSessionNotification(window).unwrap();
+                DestroyWindow(window).unwrap();
+                LRESULT(0)
+            }
+            WM_DESTROY => {
+                PostQuitMessage(0);
                 LRESULT(0)
             }
             _ => DefWindowProcA(window, message, wparam, lparam),

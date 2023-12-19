@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use sleepy_locker::{init_control_thread, Event, LockState};
+use sleepy_locker::{init_event_thread, Event, LockState};
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use tauri_plugin_autostart::MacosLauncher;
@@ -34,7 +34,16 @@ fn get_sleep_prevent_enabled(
 }
 
 fn main() {
-    let (tx, lock_state) = init_control_thread();
+    let (tx, lock_state, close_dummy_window, dw_handle, event_handle) = init_event_thread();
+    let tx_for_quit = tx.clone();
+
+    let clean_up = Arc::new(Mutex::new(Some(move || {
+        close_dummy_window();
+        dw_handle.join().unwrap();
+        tx_for_quit.send(Event::Quit).unwrap();
+        event_handle.join().unwrap();
+    })));
+    let clean_up_for_system_tray = Arc::clone(&clean_up);
 
     tauri::Builder::default()
         .manage(tx)
@@ -44,11 +53,20 @@ fn main() {
             get_sleep_prevent_enabled
         ])
         .system_tray(create_systemtray())
-        .on_system_tray_event(on_system_tray_event)
+        .on_system_tray_event(on_system_tray_event(clean_up_for_system_tray))
         .plugin(tauri_plugin_autostart::init(
             MacosLauncher::LaunchAgent,
             None,
         ))
+        .on_window_event(move |event| match event.event() {
+            tauri::WindowEvent::CloseRequested { .. } => {
+                let Some(clean_up) = clean_up.lock().unwrap().take() else {
+                    return;
+                };
+                clean_up();
+            }
+            _ => {}
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
